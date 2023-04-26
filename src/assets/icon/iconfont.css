@@ -1,0 +1,23 @@
+@font-face {
+  font-family: "iconfont"; /* Project id 4040449 */
+  src: url("iconfont.woff2?t=1682498565664") format("woff2"),
+    url("iconfont.woff?t=1682498565664") format("woff"),
+    url("iconfont.ttf?t=1682498565664") format("truetype"),
+    url("iconfont.svg?t=1682498565664#iconfont") format("svg");
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 20px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-shanchu:before {
+  content: "\e626";
+}
+
+.icon-zengjia:before {
+  content: "\e608";
+}
