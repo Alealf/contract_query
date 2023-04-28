@@ -2,7 +2,7 @@
  * @Author: liu jinwei kk2324982471@163.com
  * @Date: 2023-04-06 11:00:28
  * @LastEditors: liu jinwei kk2324982471@163.com
- * @LastEditTime: 2023-04-26 18:26:45
+ * @LastEditTime: 2023-04-28 14:41:27
  * @FilePath: \doc_query_vue\src\pages\index.vue
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -12,7 +12,7 @@
       <div class="navigation-bar">
         <div class="navigation-bar-wrapper">
           <img class="logo" src="../image/logo.png" alt="" />
-          <div class="navigation-wrapper">信贷分类文档分析系统</div>
+          <div class="navigation-wrapper">文档信息分类分析系统</div>
           <span
             class="icon-setting"
             @click="pageData.config_state = !pageData.config_state"
@@ -31,8 +31,8 @@
       <table>
         <tbody>
           <tr class="zonedword-switch setting-checked">
-            <td class="first_td">
-              <span class="check-label">开启自定义分词</span>
+            <td>
+              <span class="check-label">使用自定义库</span>
             </td>
             <td>
               <el-switch
@@ -47,7 +47,7 @@
             <td colspan="2"><hr class="split-line" /></td>
           </tr>
           <tr>
-            <td class="first_td">
+            <td>
               <span class="check-label">标准阈值</span>
             </td>
             <td>
@@ -55,7 +55,7 @@
             </td>
           </tr>
           <tr>
-            <td class="first_td">
+            <td>
               <span class="check-label">标准分词模式</span>
             </td>
             <td>
@@ -69,7 +69,7 @@
             </td>
           </tr>
           <tr>
-            <td class="first_td">
+            <td>
               <span class="check-label">资料分词模式</span>
             </td>
             <td>
@@ -86,7 +86,7 @@
       </table>
     </div>
     <div class="cont">
-      <h2>请输入需要分类的贷款合同文本</h2>
+      <h2>请输入需要分类的文档信息文本</h2>
       <div>
         <span>请选择分类算法：</span>
         <el-select
@@ -111,7 +111,7 @@
             v-model="resData.query"
             :autosize="{ minRows: 3, maxRows: 3 }"
             type="textarea"
-            placeholder="请输入需要分类的贷款合同文本"
+            placeholder="请输入需要分类的文本信息"
             class="input-with-select"
             @keyup.enter="send()"
           >
@@ -190,20 +190,16 @@
         <div class="lang-show-lang-switch-container">
           <div style="display: flex">
             <el-input
-              v-model="input"
-              type="password"
+              v-model="pageData.updatewords"
               placeholder="输入新增词汇"
-              show-password
             />
             <el-input
-              v-model="input"
-              type="password"
+              v-model="pageData.updatewordsweight"
               placeholder="输入权重值"
-              show-password
               style="margin-left: 2px; margin-right: 2px"
             />
           </div>
-          <div class="add-buttton-icon" @click="send()">
+          <div class="add-buttton-icon" @click="updatewords()">
             <span class="iconfont icon-zengjia"></span>
           </div>
         </div>
@@ -247,13 +243,13 @@
             >
               <p class="letter-title">{{ letter }}</p>
               <el-tag
-                v-for="item in pageData.A_Z_stopWords[letter]"
+                v-for="item in pageData.Words[letter]"
                 :key="item"
                 class="lang-item"
                 size="large"
                 closable
                 color="#fff"
-                close=""
+                @close="deletewords(item)"
                 >{{ item }}</el-tag
               >
             </div>
@@ -296,8 +292,14 @@
 </template>
 <script setup>
 import { reactive } from "vue";
-import { sendQuery, searchStopWord } from "/src/api/send";
-import { Search, CirclePlus } from "@element-plus/icons-vue";
+import {
+  sendQuery,
+  searchStopWord,
+  deleteStopWord,
+  updateStopWord,
+  searchUserWord,
+  searchallClasses,
+} from "/src/api/send";
 const resData = reactive({
   query: "",
   hasDes: false,
@@ -313,12 +315,6 @@ const resData = reactive({
   updateWordsOperate: "增加",
   wordsContent: "",
   wordsTopic: "",
-  stopResultWords: {
-    count: 0,
-    currentPage: 1000,
-    stopWords: [],
-    total: 0,
-  },
   standard_use_custom: false,
   threshold: 0,
   cut_materials: "search",
@@ -330,187 +326,29 @@ const pageData = reactive({
   console_data: [
     {
       topic: "核心词库",
-      describe: "信贷合同文本的核心权重词汇",
+      describe: "文档分类的核心权重词汇",
       img: "url(https://iconfont.alicdn.com/p/illus_3d/file/NlKK3XkjWiGH/ecadf494-4e78-4679-ba10-b67e6f5798a2.png?image_process=resize,l_1000)",
     },
     {
       topic: "专家词库",
-      describe: "信贷合同分本分类的权重依据",
+      describe: "文档分类的权重依据",
       img: "url(https://iconfont.alicdn.com/p/illus_3d/file/NlKK3XkjWiGH/db8027cf-4b6d-48ab-9537-4f7102a4bf68.png)",
     },
     {
       topic: "停用词库",
-      describe: "信贷合同文本的屏蔽搜索词汇",
+      describe: "文档分类的屏蔽搜索词汇",
       img: "url(https://iconfont.alicdn.com/p/illus_3d/file/NlKK3XkjWiGH/055a8937-9a2f-4f03-b6f4-23847c456783.png)",
     },
   ],
   console_state: false,
-  letters: [
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "H",
-    "I",
-    "J",
-    "K",
-    "L",
-    "M",
-    "N",
-    "O",
-    "P",
-    "Q",
-    "R",
-    "S",
-    "T",
-    "U",
-    "V",
-    "W",
-    "X",
-    "Y",
-    "Z",
-    "other",
-  ],
   config_state: false,
-  A_Z_stopWords: {
-    A: ["安全", "爱情", "安全", "岸", "暗示", "暗箱", "暗中", "暗"],
-    B: [
-      "博",
-      "薄",
-      "不但",
-      "不断",
-      "不只",
-      "不良",
-      "不满",
-      "不逾",
-      "不逾布道",
-      "布局",
-      "布满",
-      "部分",
-      "部队",
-      "部门",
-    ],
-    C: [
-      "承罪",
-      "承担",
-      "承认",
-      "承受",
-      "承载",
-      "承诺",
-      "乘幘",
-      "萩",
-      "程度继续",
-      "尺",
-      "池",
-      "耻",
-      "齿",
-      "翼",
-      "痴迷",
-      "赤道",
-      "持久",
-      "持有",
-      "赤字",
-      "迟到",
-      "滞疑",
-      "嗤笑",
-      "尺寸",
-      "池塘",
-      "耻辱",
-    ],
-    D: [
-      "大力度",
-      "大力支持",
-      "大面积",
-      "大体",
-      "大同",
-      "大型",
-      "大学",
-      "大意",
-      "大致",
-      "带头",
-      "带有",
-      "待人接物",
-      "单",
-      "胆",
-      "但是",
-      "当",
-      "党",
-      "当然",
-      "当时",
-      "当务之急",
-      "当选",
-      "档",
-      "倒",
-      "导",
-      "到达",
-      "道德",
-      "道路",
-      "道歉",
-      "得到",
-      "得出",
-      "得以",
-      "得罪",
-      "灯",
-      "等待",
-      "等候",
-      "等级",
-      "等量",
-      "等候着",
-      "等闲",
-      "登",
-      "等于",
-      "等候时间",
-      "敌",
-    ],
-    E: ["俄罗斯", "二", "二十", "二日"],
-    F: [
-      "服装",
-      "复制",
-      "覆盖",
-      "佛教",
-      "佛经",
-      "翻译",
-      "翻盖",
-      "翻新恩",
-      "烦扰",
-      "凡事",
-      "凡人",
-      "凡是",
-      "凡尔赛",
-      "范围",
-      "范围",
-      "反复",
-      "反感",
-      "反击",
-      "反应",
-      "反正",
-      "反转",
-    ],
-    G: ["安全", "爱情", "安全", "岸", "暗示", "暗箱", "暗中", "暗"],
-    H: ["安全", "爱情", "安全", "岸", "暗示", "暗箱", "暗中", "暗"],
-    I: ["安全", "爱情", "安全", "岸", "暗示", "暗箱", "暗中", "暗"],
-    J: ["安全", "爱情", "安全", "岸", "暗示", "暗箱", "暗中", "暗"],
-    K: ["安全", "爱情", "安全", "岸", "暗示", "暗箱", "暗中", "暗"],
-    L: [],
-    M: [],
-    N: [],
-    O: [],
-    P: [],
-    Q: [],
-    R: [],
-    S: [],
-    T: [],
-    U: [],
-    V: [],
-    W: [],
-    X: [],
-    Y: [],
-    Z: [],
-    other: [],
-  },
+  updatewords: "",
+  updatewordsweight: "",
+  letters: ["EN", "CN", "SC"],
+  a_Z_Words: [],
+  chinese_Words: [],
+  teshuzifu_Words: [],
+  Words: {},
 });
 const send = async () => {
   resData.result = [{ name: "加载中。。。" }];
@@ -524,8 +362,6 @@ const send = async () => {
       if (e.response) {
         //请求已发出，服务器返回状态码不是2xx。
         console.info(e.response.data);
-        console.info(e.response.status);
-        console.info(e.response.headers);
       } else {
         //发送请求时异常，捕捉到错误
         console.info("error", e.message);
@@ -533,28 +369,150 @@ const send = async () => {
     });
 };
 const sendwords = async () => {
+  pageData.a_Z_Words = [];
+  pageData.chinese_Words = [];
+  pageData.teshuzifu_Words = [];
   if (resData.wordsTopic == "停用词库") {
     searchStopWord(resData.wordsContent)
       .then((res) => {
         // 获取数据
         console.log(res.data.data);
-        resData.stopResultWords = res.data.data;
-        pageData.A_Z_stopWords = resData.stopResultWords.stopWords;
-        pageData.A_Z_stopWords = [[]];
-        console.log(resData.stopResultWords.stopWords);
+        const ResWords = res.data.data;
+        const str = ResWords.stopWords;
+        const len = str.length;
+        for (let i = 0; i < len; i++) {
+          const charCode = str[i].charCodeAt(0);
+          if (
+            (charCode >= 65 && charCode <= 90) ||
+            (charCode >= 97 && charCode <= 122)
+          ) {
+            pageData.a_Z_Words.push(str[i]);
+          } else if (charCode >= 19968 && charCode <= 40869) {
+            pageData.chinese_Words.push(str[i]);
+          } else {
+            pageData.teshuzifu_Words.push(str[i]);
+          }
+        }
+        pageData.Words = {
+          EN: pageData.a_Z_Words,
+          CN: pageData.chinese_Words,
+          SC: pageData.teshuzifu_Words,
+        };
       })
       .catch((e) => {
         if (e.response) {
           //请求已发出，服务器返回状态码不是2xx。
           console.info(e.response.data);
-          console.info(e.response.status);
-          console.info(e.response.headers);
+        } else {
+          //发送请求时异常，捕捉到错误
+          console.info("error", e.message);
+        }
+      });
+  } else if (resData.wordsTopic == "专家词库") {
+    searchUserWord(resData.wordsContent)
+      .then((res) => {
+        // 获取数据
+        console.log(res.data.data);
+        const ResWords = res.data.data;
+        const str = ResWords.userWords;
+        const len = str.length;
+        for (let i = 0; i < len; i++) {
+          const charCode = str[i].charCodeAt(0);
+          if (
+            (charCode >= 65 && charCode <= 90) ||
+            (charCode >= 97 && charCode <= 122)
+          ) {
+            pageData.a_Z_Words.push(str[i]);
+          } else if (charCode >= 19968 && charCode <= 40869) {
+            pageData.chinese_Words.push(str[i]);
+          } else {
+            pageData.teshuzifu_Words.push(str[i]);
+          }
+        }
+        pageData.Words = {
+          EN: pageData.a_Z_Words,
+          CN: pageData.chinese_Words,
+          SC: pageData.teshuzifu_Words,
+        };
+      })
+      .catch((e) => {
+        if (e.response) {
+          //请求已发出，服务器返回状态码不是2xx。
+          console.info(e.response.data);
+        } else {
+          //发送请求时异常，捕捉到错误
+          console.info("error", e.message);
+        }
+      });
+  } else {
+    searchallClasses(resData.wordsContent)
+      .then((res) => {
+        // 获取数据
+        console.log(res.data.data);
+        const ResWords = res.data.data;
+        const str = ResWords;
+        const len = str.length;
+        for (let i = 0; i < len; i++) {
+          const charCode = str[i]["name"].charCodeAt(0);
+          if (
+            (charCode >= 65 && charCode <= 90) ||
+            (charCode >= 97 && charCode <= 122)
+          ) {
+            pageData.a_Z_Words.push(str[i]["name"].substr(0, 3));
+          } else if (charCode >= 19968 && charCode <= 40869) {
+            pageData.chinese_Words.push(str[i]["name"].substr(0, 3));
+          } else {
+            pageData.teshuzifu_Words.push(str[i]["name"].substr(0, 3));
+          }
+        }
+        pageData.Words = {
+          EN: pageData.a_Z_Words,
+          CN: pageData.chinese_Words,
+          SC: pageData.teshuzifu_Words,
+        };
+      })
+      .catch((e) => {
+        if (e.response) {
+          //请求已发出，服务器返回状态码不是2xx。
+          console.info(e.response.data);
         } else {
           //发送请求时异常，捕捉到错误
           console.info("error", e.message);
         }
       });
   }
+};
+const deletewords = async (word) => {
+  if (resData.wordsTopic == "停用词库") {
+    deleteStopWord(word)
+      .then((res) => {
+        // 获取数据
+        console.log(res);
+      })
+      .catch((e) => {
+        console.info("error", e.message);
+      });
+  }
+  sendwords();
+  this.$forceUpdate();
+};
+
+const updatewords = async () => {
+  if (resData.wordsTopic == "停用词库") {
+    updateStopWord(pageData.updatewords)
+      .then((res) => {
+        // 获取数据
+        console.log(res);
+        pageData.a_Z_Words = [];
+        pageData.chinese_Words = [];
+        pageData.teshuzifu_Words = [];
+      })
+      .catch((e) => {
+        console.info("error", e.message);
+      });
+  }
+  sendwords();
+  this.$forceUpdate();
 };
 const addpoint = (item, index) => {
   resData.key_word.push({
@@ -574,6 +532,7 @@ const openWordConsole = (name) => {
   if (resData.wordsTopic !== name) {
     pageData.console_state = true;
     resData.wordsTopic = name;
+    sendwords();
   } else {
     pageData.console_state = false;
     resData.wordsTopic = "";
@@ -867,9 +826,7 @@ ul {
 .check-label {
   font-size: 14px;
 }
-.first_td {
-  width: 100px;
-}
+
 .sound-spd-items {
   display: flex;
   flex-wrap: nowrap;
