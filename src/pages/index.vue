@@ -2,7 +2,7 @@
  * @Author: liu jinwei kk2324982471@163.com
  * @Date: 2023-04-06 11:00:28
  * @LastEditors: liu jinwei kk2324982471@163.com
- * @LastEditTime: 2023-04-28 14:41:27
+ * @LastEditTime: 2023-04-28 15:03:06
  * @FilePath: \doc_query_vue\src\pages\index.vue
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -299,6 +299,7 @@ import {
   updateStopWord,
   searchUserWord,
   searchallClasses,
+  updateKeyWord,
 } from "/src/api/send";
 const resData = reactive({
   query: "",
@@ -500,6 +501,18 @@ const deletewords = async (word) => {
 const updatewords = async () => {
   if (resData.wordsTopic == "停用词库") {
     updateStopWord(pageData.updatewords)
+      .then((res) => {
+        // 获取数据
+        console.log(res);
+        pageData.a_Z_Words = [];
+        pageData.chinese_Words = [];
+        pageData.teshuzifu_Words = [];
+      })
+      .catch((e) => {
+        console.info("error", e.message);
+      });
+  } else if (resData.wordsTopic == "核心词库") {
+    updateKeyWord("0", pageData.updatewords, Number(pageData.updatewordsweight))
       .then((res) => {
         // 获取数据
         console.log(res);
